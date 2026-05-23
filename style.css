@@ -83,6 +83,13 @@ nav {
     gap: 8px;
 }
 
+.weather-location {
+    color: var(--text-light);
+    font-size: 13px;
+    font-weight: 500;
+    margin-left: 6px;
+}
+
 .weather-loading {
     color: var(--text-light);
     font-weight: 500;

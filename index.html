@@ -16,6 +16,7 @@
                 <div class="weather-display">
                     <div class="weather-emoji">☀️</div>
                     <div class="weather-temp">--°F</div>
+                    <div class="weather-location"></div>
                 </div>
 
                 <form class="weather-zip" id="weather-zip" onsubmit="return false;">
@@ -132,19 +133,26 @@
         const widget = document.getElementById('weather-widget');
         const emojiEl = widget.querySelector('.weather-emoji');
         const tempEl = widget.querySelector('.weather-temp');
+        const locEl = widget.querySelector('.weather-location');
         const zipForm = document.getElementById('weather-zip');
         const zipInput = document.getElementById('zip-input');
         const zipSubmit = document.getElementById('zip-submit');
+
+        const US_STATES = {
+            'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA','Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA','Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA','Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK','Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC','South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT','Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY','District of Columbia':'DC'
+        };
 
         function setLoading() {
             widget.classList.add('weather-loading');
             emojiEl.textContent = '⏳';
             tempEl.textContent = 'Loading';
+            locEl.textContent = '';
         }
 
         function setError() {
             emojiEl.textContent = '❓';
             tempEl.textContent = 'N/A';
+            locEl.textContent = '';
             widget.classList.remove('weather-loading');
         }
 
@@ -169,10 +177,38 @@
             return '🌈';
         }
 
-        function updateWidget(tempF, code) {
+        function formatLocationFromResult(res) {
+            if (!res) return '';
+            const name = res.name || '';
+            const admin1 = res.admin1 || res.admin2 || '';
+            const country = (res.country_code || (res.country && res.country.toUpperCase()) || '').toUpperCase();
+            if (country === 'US' && admin1) {
+                const abbr = US_STATES[admin1] || (admin1.length === 2 ? admin1.toUpperCase() : null);
+                return abbr ? `${name}, ${abbr}` : `${name}, ${admin1}`;
+            }
+            if (admin1) return `${name}, ${admin1}`;
+            if (res.country) return `${name}, ${res.country}`;
+            return name;
+        }
+
+        function updateWidget(tempF, code, location) {
             emojiEl.textContent = weatherCodeToEmoji(code);
             tempEl.textContent = Math.round(tempF) + '°F';
+            if (location) locEl.textContent = location;
             widget.classList.remove('weather-loading');
+        }
+
+        function reverseGeocode(lat, lon) {
+            const url = `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&count=1`;
+            fetch(url).then(r => r.json()).then(data => {
+                if (data && data.results && data.results.length) {
+                    const res = data.results[0];
+                    const loc = formatLocationFromResult(res);
+                    if (loc) locEl.textContent = loc;
+                }
+            }).catch(err => {
+                console.warn('reverse geocode failed', err);
+            });
         }
 
         function fetchWeather(lat, lon) {
@@ -184,6 +220,8 @@
                 const cw = data.current_weather;
                 if (cw && typeof cw.temperature !== 'undefined') {
                     updateWidget(cw.temperature, cw.weathercode);
+                    // try to get location name via reverse geocode
+                    reverseGeocode(lat, lon);
                 } else {
                     setError();
                 }
@@ -205,6 +243,8 @@
             }).then(data => {
                 if (data && data.results && data.results.length) {
                     const res = data.results[0];
+                    const loc = formatLocationFromResult(res);
+                    if (loc) locEl.textContent = loc;
                     fetchWeather(res.latitude, res.longitude);
                     widget.classList.remove('zip-visible');
                 } else {
@@ -234,17 +274,43 @@
         });
 
         if ('geolocation' in navigator) {
-            setLoading();
-            navigator.geolocation.getCurrentPosition(pos => {
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
-                fetchWeather(lat, lon);
-            }, err => {
-                console.warn('Geolocation denied or unavailable', err);
-                // show ZIP fallback so the user can enter location manually
-                showZipFallback();
-            }, {timeout: 10000});
+            // Prefer using Permissions API to decide whether to prompt or show ZIP fallback
+            const tryGetPosition = () => {
+                setLoading();
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    fetchWeather(lat, lon);
+                }, err => {
+                    console.warn('Geolocation error', err);
+                    // On any geolocation failure, fall back to ZIP so user can still provide location
+                    showZipFallback();
+                }, {timeout: 10000});
+            };
+
+            if (navigator.permissions && navigator.permissions.query) {
+                navigator.permissions.query({name: 'geolocation'}).then(status => {
+                    if (status.state === 'denied') {
+                        // permission denied => show ZIP input
+                        showZipFallback();
+                    } else if (status.state === 'granted') {
+                        // already granted => try to get position
+                        tryGetPosition();
+                    } else {
+                        // prompt => attempt to get position, if it fails show ZIP
+                        tryGetPosition();
+                    }
+                }).catch(err => {
+                    // permissions query failed — attempt geolocation and fallback to ZIP on error
+                    console.warn('Permissions API error', err);
+                    tryGetPosition();
+                });
+            } else {
+                // Permissions API unavailable — try geolocation and fall back to ZIP on any failure
+                tryGetPosition();
+            }
         } else {
+            // Geolocation API not supported
             showZipFallback();
         }
     })();
