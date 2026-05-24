@@ -18,6 +18,7 @@
                     <div class="weather-temp">--°F</div>
                     <div class="weather-location"></div>
                 </div>
+                <div class="weather-debug" id="weather-debug" aria-hidden="false"></div>
 
                 <form class="weather-zip" id="weather-zip" onsubmit="return false;">
                     <input id="zip-input" class="weather-input" type="text" inputmode="numeric" maxlength="10" placeholder="ZIP" aria-label="ZIP code">
@@ -137,6 +138,12 @@
         const zipForm = document.getElementById('weather-zip');
         const zipInput = document.getElementById('zip-input');
         const zipSubmit = document.getElementById('zip-submit');
+        const debugEl = document.getElementById('weather-debug');
+
+        function debug(msg) {
+            try { console.debug(msg); } catch(e){}
+            if (debugEl) debugEl.textContent = String(msg);
+        }
 
         const US_STATES = {
             'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA','Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA','Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA','Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK','Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC','South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT','Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY','District of Columbia':'DC'
@@ -147,13 +154,15 @@
             emojiEl.textContent = '⏳';
             tempEl.textContent = 'Loading';
             locEl.textContent = '';
+            debug('Loading: requesting location...');
         }
 
-        function setError() {
+        function setError(msg) {
             emojiEl.textContent = '❓';
             tempEl.textContent = 'N/A';
             locEl.textContent = '';
             widget.classList.remove('weather-loading');
+            debug(msg || 'Error occurred');
         }
 
         function showZipFallback() {
@@ -161,6 +170,7 @@
             widget.classList.remove('weather-loading');
             zipInput.focus();
             zipInput.select();
+            debug('Please enter ZIP code (fallback)');
         }
 
         function weatherCodeToEmoji(code) {
@@ -196,6 +206,9 @@
             tempEl.textContent = Math.round(tempF) + '°F';
             if (location) locEl.textContent = location;
             widget.classList.remove('weather-loading');
+            debug('Weather updated: ' + Math.round(tempF) + '°F' + (location ? ' — ' + location : ''));
+            // clear debug after a moment
+            setTimeout(() => { if (debugEl) debugEl.textContent = ''; }, 5000);
         }
 
         function reverseGeocode(lat, lon) {
@@ -213,21 +226,24 @@
 
         function fetchWeather(lat, lon) {
             const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=fahrenheit`;
+            debug('Fetching weather: ' + url);
             fetch(url).then(r => {
                 if (!r.ok) throw new Error('weather fetch failed');
                 return r.json();
             }).then(data => {
+                debug('Weather response received');
                 const cw = data.current_weather;
                 if (cw && typeof cw.temperature !== 'undefined') {
                     updateWidget(cw.temperature, cw.weathercode);
                     // try to get location name via reverse geocode
                     reverseGeocode(lat, lon);
                 } else {
-                    setError();
+                    debug('No current_weather in response');
+                    setError('No current weather data');
                 }
             }).catch(err => {
-                console.error(err);
-                setError();
+                debug('Weather fetch error: ' + (err && err.message));
+                setError('Weather fetch failed');
             });
         }
 
@@ -277,36 +293,91 @@
             // Prefer using Permissions API to decide whether to prompt or show ZIP fallback
             const tryGetPosition = () => {
                 setLoading();
+                debug('Requesting position (browser prompt may appear)...');
+                startFallbackTimer();
                 navigator.geolocation.getCurrentPosition(pos => {
+                    // success
+                    debug('Geolocation obtained: ' + pos.coords.latitude.toFixed(4) + ',' + pos.coords.longitude.toFixed(4));
+                    clearFallbackTimer();
                     const lat = pos.coords.latitude;
                     const lon = pos.coords.longitude;
                     fetchWeather(lat, lon);
                 }, err => {
                     console.warn('Geolocation error', err);
-                    // On any geolocation failure, fall back to ZIP so user can still provide location
-                    showZipFallback();
-                }, {timeout: 10000});
+                    debug('Geolocation error: ' + (err && err.message) + ' (code ' + (err && err.code) + ')');
+                    // If permission denied, show ZIP fallback; otherwise try IP-based fallback
+                    if (err && err.code === 1) {
+                        showZipFallback();
+                    } else {
+                        debug('Attempting IP-based fallback...');
+                        ipFallback();
+                    }
+                }, {timeout: 15000, maximumAge: 600000, enableHighAccuracy: false});
             };
 
+            function ipFallback() {
+                // Use IP-based geolocation as a last resort (no API key)
+                const url = 'https://ipapi.co/json/';
+                debug('Fetching IP-based location...');
+                fetch(url).then(r => {
+                    if (!r.ok) throw new Error('IP geolocation failed');
+                    return r.json();
+                }).then(data => {
+                    if (data && data.latitude && data.longitude) {
+                        debug('IP location: ' + data.city + ', ' + data.region + ' (' + data.latitude + ',' + data.longitude + ')');
+                        const lat = data.latitude;
+                        const lon = data.longitude;
+                        // set location display if possible
+                        const city = data.city || '';
+                        const region = data.region || '';
+                        if (city && region) locEl.textContent = city + ', ' + region;
+                        fetchWeather(lat, lon);
+                    } else {
+                        debug('IP fallback returned no coords');
+                        showZipFallback();
+                    }
+                }).catch(err => {
+                    console.warn('IP fallback error', err);
+                    showZipFallback();
+                });
+            }
+
+            let fallbackTimer = null;
+            const startFallbackTimer = () => {
+                clearFallbackTimer();
+                fallbackTimer = setTimeout(() => {
+                    console.warn('Geolocation timed out — showing ZIP fallback');
+                    showZipFallback();
+                }, 8000);
+            };
+            const clearFallbackTimer = () => { if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; } };
+
             if (navigator.permissions && navigator.permissions.query) {
+                console.debug('Querying Permissions API for geolocation');
                 navigator.permissions.query({name: 'geolocation'}).then(status => {
+                    console.debug('Permissions state:', status.state);
                     if (status.state === 'denied') {
                         // permission denied => show ZIP input
                         showZipFallback();
                     } else if (status.state === 'granted') {
                         // already granted => try to get position
+                        startFallbackTimer();
                         tryGetPosition();
                     } else {
                         // prompt => attempt to get position, if it fails show ZIP
+                        startFallbackTimer();
                         tryGetPosition();
                     }
+                    try { status.onchange = () => console.debug('Permissions changed:', status.state); } catch(e){}
                 }).catch(err => {
                     // permissions query failed — attempt geolocation and fallback to ZIP on error
                     console.warn('Permissions API error', err);
+                    startFallbackTimer();
                     tryGetPosition();
                 });
             } else {
                 // Permissions API unavailable — try geolocation and fall back to ZIP on any failure
+                startFallbackTimer();
                 tryGetPosition();
             }
         } else {
