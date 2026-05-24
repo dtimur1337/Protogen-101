@@ -91,13 +91,7 @@ nav {
 }
 
 .weather-debug {
-    color: var(--text-light);
-    font-size: 12px;
-    margin-left: 8px;
-    max-width: 260px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: none !important;
 }
 
 .weather-loading {
