@@ -177,7 +177,7 @@ h1 {
 .hero-description {
     font-size: 21px;
     color: var(--text-light);
-    margin-bottom: 40px;
+    margin-bottom: 0;
     line-height: 1.38;
     max-width: 800px;
     margin-left: auto;
@@ -467,7 +467,7 @@ footer {
 .project-card:nth-child(3) { animation-delay: 0.2s; }
 
 /* Masonry Gallery */
-.gallery-section { padding: 40px 0; }
+.gallery-section { padding: 0; }
 .masonry-gallery { position: relative; max-width: none; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); padding: 20px 24px; box-sizing: border-box; }
 .gallery-note { color: var(--text-light); font-size: 13px; margin-top: 12px; text-align: center; }
 
