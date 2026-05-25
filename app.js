@@ -219,13 +219,27 @@
     async function loadAndBuild(){
         showLoader(true);
         let list = [];
+        // Try a static manifest first (works on Vercel / static hosts)
         try {
-            const res = await fetch('Images/');
-            const txt = await res.text();
-            const matches = Array.from(txt.matchAll(/href="([^\"]+)"/ig)).map(m=>m[1]);
-            const exts = ['.jpg','.jpeg','.png','.webp','.gif','.tif','.tiff'];
-            list = matches.filter(n=>exts.some(e=>n.toLowerCase().endsWith(e))).map(f=>`Images/${f}`);
-        } catch(e) { list = []; }
+            const m = await fetch('/images.json');
+            if (m.ok) {
+                const json = await m.json();
+                if (Array.isArray(json) && json.length) {
+                    list = json.slice();
+                }
+            }
+        } catch (e) { /* ignore and fallback */ }
+
+        // Fallback: try directory listing scraping (works for local simple servers)
+        if (!list.length) {
+            try {
+                const res = await fetch('Images/');
+                const txt = await res.text();
+                const matches = Array.from(txt.matchAll(/href="([^\"]+)"/ig)).map(m=>m[1]);
+                const exts = ['.jpg','.jpeg','.png','.webp','.gif','.tif','.tiff'];
+                list = matches.filter(n=>exts.some(e=>n.toLowerCase().endsWith(e))).map(f=>`Images/${f}`);
+            } catch(e) { list = []; }
+        }
 
         if (!list.length){ showLoader(false); container.innerHTML = '<p style="color:var(--text-light);text-align:center">No images found in Images/</p>'; return; }
 
