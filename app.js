@@ -170,3 +170,88 @@
     // start
     init();
 })();
+
+// Gallery: masonry layout, lazy reveal, and lightbox
+(function(){
+    const loader = document.getElementById('gallery-loader');
+    const container = document.getElementById('gallery-columns');
+    if (!container) return;
+
+    const GAP = 24;
+    const MAX_THUMB = 500;
+
+    function showLoader(on){ if (loader) loader.style.display = on ? 'block' : 'none'; }
+
+    function createLightbox(){
+        const lb = document.createElement('div'); lb.className = 'lightbox';
+        lb.innerHTML = '<div class="close" aria-hidden="true">✕</div><img src="" alt="">';
+        document.body.appendChild(lb);
+        const img = lb.querySelector('img');
+        lb.querySelector('.close').addEventListener('click', ()=> lb.classList.remove('active'));
+        lb.addEventListener('click', (e)=> { if (e.target === lb) lb.classList.remove('active'); });
+        document.addEventListener('keydown', (e)=> { if (e.key === 'Escape') lb.classList.remove('active'); });
+        return {el: lb, img};
+    }
+
+    const lightbox = createLightbox();
+    function openLightbox(src){ lightbox.img.src = src; lightbox.el.classList.add('active'); }
+
+    function buildColumns(n){ container.innerHTML = ''; const cols = []; for (let i=0;i<n;i++){ const c=document.createElement('div'); c.className='gallery-column'; container.appendChild(c); cols.push(c);} return cols; }
+
+    function shortestColumn(cols){
+        let idx = 0; let min = Infinity;
+        cols.forEach((c,i)=>{ const h = c.scrollHeight || c.offsetHeight || 0; if (h < min){ min = h; idx = i; } });
+        return cols[idx];
+    }
+
+    function layout(images, thumbW){
+        const available = Math.max(document.documentElement.clientWidth || window.innerWidth, container.parentElement.clientWidth || 0);
+        const colWidth = (thumbW || MAX_THUMB) + GAP;
+        let colsCount = Math.floor((available + GAP) / colWidth);
+        colsCount = Math.max(1, Math.min(colsCount, images.length));
+        const cols = buildColumns(colsCount);
+        images.forEach(img => {
+            const target = shortestColumn(cols);
+            target.appendChild(img);
+        });
+    }
+
+    async function loadAndBuild(){
+        showLoader(true);
+        let list = [];
+        try {
+            const res = await fetch('Images/');
+            const txt = await res.text();
+            const matches = Array.from(txt.matchAll(/href="([^\"]+)"/ig)).map(m=>m[1]);
+            const exts = ['.jpg','.jpeg','.png','.webp','.gif','.tif','.tiff'];
+            list = matches.filter(n=>exts.some(e=>n.toLowerCase().endsWith(e))).map(f=>`Images/${f}`);
+        } catch(e) { list = []; }
+
+        if (!list.length){ showLoader(false); container.innerHTML = '<p style="color:var(--text-light);text-align:center">No images found in Images/</p>'; return; }
+
+        const imgs = list.map(src=>{
+            const el = document.createElement('img'); el.alt=''; el.loading='lazy'; el.addEventListener('click', ()=> openLightbox(src)); el.addEventListener('load', ()=> el.classList.add('in-view')); el.onerror = ()=> el.style.display='none'; el.src = src; return el;
+        });
+
+        // wait briefly for images to start loading, but don't block too long
+        const loads = imgs.map(img => new Promise(res=>{ if (img.complete && img.naturalWidth) return res(); img.addEventListener('load', ()=>res(), {once:true}); img.addEventListener('error', ()=>res(), {once:true}); }));
+        await Promise.race([Promise.all(loads), new Promise(r=> setTimeout(r, 700))]);
+
+        // compute representative thumb width from actual loaded natural widths (capped)
+        const widths = imgs.map(i=>i.naturalWidth || i.width || MAX_THUMB).filter(Boolean);
+        const avg = widths.length ? Math.round(widths.reduce((a,b)=>a+b,0)/widths.length) : MAX_THUMB;
+        const thumbW = Math.min(MAX_THUMB, Math.max(80, avg));
+
+        layout(imgs, thumbW);
+        showLoader(false);
+
+        const io = new IntersectionObserver(entries=>{ entries.forEach(en=>{ if (en.isIntersecting) en.target.classList.add('in-view'); }); }, {threshold:0.06});
+        container.querySelectorAll('img').forEach(i=> io.observe(i));
+
+        let t; window.addEventListener('resize', ()=>{ clearTimeout(t); t = setTimeout(()=>{ const imgsNow = Array.from(container.querySelectorAll('img')); layout(imgsNow, thumbW); }, 220); });
+    }
+
+    loadAndBuild();
+
+})();
+
