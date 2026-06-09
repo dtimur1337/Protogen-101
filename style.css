@@ -29,7 +29,49 @@ body {
 /* make footer stick to bottom */
 html, body { height: 100%; }
 body { display: flex; flex-direction: column; }
-main { flex: 1 0 auto; }
+main { flex: 1 0 auto; position: relative; z-index: 1; }
+
+/* subtle retrofuturism nebula background */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: normal;
+    background-repeat: no-repeat;
+    background-image:
+        radial-gradient(45% 35% at 10% 88%, rgba(255,140,66,0.26), transparent 24%),
+        radial-gradient(60% 50% at 88% 92%, rgba(0,180,216,0.22), transparent 26%),
+        radial-gradient(40% 30% at 60% 60%, rgba(102,126,234,0.16), transparent 20%),
+        radial-gradient(100% 40% at 50% 100%, rgba(120,20,160,0.12), transparent 40%),
+        radial-gradient(2000px 600px at 50% 100%, rgba(30,10,40,0.14), transparent 30%);
+    opacity: 0.12;
+    filter: saturate(100%) contrast(95%);
+    /* fade out toward the top */
+    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0));
+    mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0));
+}
+
+/* make sure main content sits above the decorative background */
+.hero, .gallery-section, .masonry-gallery, .section-container, section, footer, .projects-grid, .about-page, main {
+    position: relative;
+    z-index: 1;
+}
+
+/* subtle multi-sized starfield */
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: radial-gradient(white 0.8px, transparent 0.8px), radial-gradient(white 0.5px, transparent 0.5px);
+    background-size: 4px 4px, 8px 8px;
+    opacity: 0.03;
+    mix-blend-mode: normal;
+    transform: translateZ(0);
+}
 
 /* Navigation */
 nav {
