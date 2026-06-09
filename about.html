@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About — Timur</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <div class="logo">Timur</div>
+
+            <div class="weather-widget center" id="weather-widget" aria-live="polite">
+                <div class="weather-display">
+                    <div class="weather-emoji">☀️</div>
+                    <div class="weather-temp">--°F</div>
+                    <div class="weather-location"></div>
+                </div>
+
+                <form class="weather-zip" id="weather-zip" onsubmit="return false;">
+                    <input id="zip-input" class="weather-input" type="text" inputmode="numeric" maxlength="10" placeholder="ZIP" aria-label="ZIP code">
+                    <button id="zip-submit" class="weather-submit">Go</button>
+                </form>
+            </div>
+
+            <ul class="nav-links" role="navigation" aria-label="Main navigation">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="about.html">About me</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="about-page">
+        <section class="section-container">
+            <div class="about-inner">
+                <div class="profile-top">
+                    <div class="profile-image">
+                        <div class="portrait-bg">
+                            <img src="Images/Self_portrait_1x1.jpeg" alt="Timur portrait">
+                        </div>
+                    </div>
+                    <div class="profile-text">
+                        <h2 class="profile-title">Hi, I'm Timur</h2>
+                        <p class="lead">Experience Design Architect with over 18 years in the design industry. I specialize in crafting intuitive, scalable digital experiences for enterprise-level products across healthcare staffing, construction, retail and public sector domains.</p>
+
+                        <p>My background in visual and web design grounds my approach in both aesthetics and usability, while my consulting experience helps organizations bridge business goals with user needs. I’m passionate about solving complex design challenges, mentoring teams, and driving design strategy that delivers measurable impact.</p>
+
+                        <div class="social-links">
+                            <a href="https://www.linkedin.com/in/timur-dzhambinov/" target="_blank" rel="noopener">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M4.98 3.5C4.98 4.88 3.88 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1 4.98 2.12 4.98 3.5zM.5 8h4V24h-4V8zM8.5 8h3.78v2.16h.05c.53-.99 1.82-2.04 3.75-2.04 4.01 0 4.75 2.64 4.75 6.07V24h-4v-7.06c0-1.68-.03-3.85-2.34-3.85-2.34 0-2.7 1.83-2.7 3.72V24h-4V8z"/></svg>
+                                LinkedIn
+                            </a>
+                            <a href="https://500px.com/p/dtimur?view=photos" target="_blank" rel="noopener">
+                                <img src="Images/500px-logo-svg-vector.svg" alt="500px logo" class="social-icon">
+                                500px
+                            </a>
+                            <a href="https://www.instagram.com/creo.works" target="_blank" rel="noopener">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm5 6.2A4.8 4.8 0 1 0 16.8 13 4.8 4.8 0 0 0 12 8.2zm6.4-2.6a1.12 1.12 0 1 1-1.12 1.12A1.12 1.12 0 0 1 18.4 5.6zM12 10.2A1.8 1.8 0 1 1 10.2 12 1.8 1.8 0 0 1 12 10.2z"/></svg>
+                                Instagram
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- contact form removed per request -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Timur. Designed and coded with care.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

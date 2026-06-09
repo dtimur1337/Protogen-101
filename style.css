@@ -26,6 +26,11 @@ body {
     line-height: 1.6;
 }
 
+/* make footer stick to bottom */
+html, body { height: 100%; }
+body { display: flex; flex-direction: column; }
+main { flex: 1 0 auto; }
+
 /* Navigation */
 nav {
     position: fixed;
@@ -65,6 +70,13 @@ nav {
     font-size: 14px;
     backdrop-filter: blur(4px);
     margin-left: auto;
+}
+
+.weather-widget.center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-left: 0;
 }
 
 .weather-emoji {
@@ -303,6 +315,53 @@ h1 {
     background-color: var(--primary);
 }
 
+/* About page layout: top spacing and two blocks centered at 800px */
+.about-page { padding-top: 120px; }
+.about-inner { max-width: 1280px; margin: 0 auto; padding: 64px 56px; background: transparent; color: var(--text); border-radius: 8px; }
+
+.profile-title { font-size: 88px; color: var(--text); margin-bottom: 28px; font-weight: 700; line-height: 0.95; }
+.profile-top { display: flex; gap: 80px; align-items: center; padding-bottom: 24px; }
+
+.portrait-bg { width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center; }
+.portrait-bg img { width: 420px; height: 420px; object-fit: cover; border-radius: 50%; border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 12px 36px rgba(0,0,0,0.6); }
+
+.profile-text { flex: 1; }
+.profile-text .lead {
+    font-size: 18px;
+    color: var(--text);
+    margin-bottom: 16px;
+}
+.profile-text p { color: var(--text-light); line-height: 1.7; margin-bottom: 18px; }
+
+.social-links { display: flex; gap: 12px; margin: 18px 0 0; }
+.social-links a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 8px 12px;
+    border: 1px solid rgba(255,255,255,0.03);
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.social-links svg { width: 18px; height: 18px; display: inline-block; color: var(--accent); }
+.social-links svg path { fill: currentColor; }
+/* allow raster/SVG images used as icons */
+.social-links img.social-icon { width: 18px; height: 18px; display: inline-block; object-fit: contain; }
+/* tint external SVG/PNG icons to match --accent (approximate) */
+.social-links img.social-icon {
+    filter: invert(52%) sepia(45%) saturate(650%) hue-rotate(335deg) brightness(96%) contrast(95%);
+}
+
+@media (max-width: 880px) {
+    .profile-top { flex-direction: column; align-items: center; text-align: left; gap: 18px; }
+    .portrait-bg { width: 280px; height: 280px; }
+    .portrait-bg img { width: 220px; height: 220px; }
+    .profile-title { font-size: 36px; }
+    .weather-widget.center { position: absolute; top: 10px; }
+}
+
 .about-content {
     max-width: 900px;
     margin: 0 auto;
@@ -401,7 +460,7 @@ footer {
     font-size: 13px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
-
+.about-page { display:flex; align-items:center; justify-content:center; padding: 40px 20px; min-height: calc(100vh - 160px); }
 /* Responsive */
 @media (max-width: 768px) {
     h1 {
